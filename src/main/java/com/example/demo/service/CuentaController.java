@@ -22,10 +22,16 @@ public class CuentaController {
     };
 
     @RequestMapping(value = "/validar", method = RequestMethod.POST)
-    public static boolean validarPassword(@RequestBody Cuenta cuentaParaValidar) {
+    public static String validarPassword(@RequestBody Cuenta cuentaParaValidar) {
         var cuentaAsociada = cuentas.stream()
                 .filter(c -> c.getNumeroCuenta().equals(cuentaParaValidar.getNumeroCuenta())).findFirst().orElse(null);
-        return cuentaAsociada != null && cuentaAsociada.getContrasenha().equals(cuentaParaValidar.getContrasenha());
+        if (cuentaAsociada == null) {
+            return "La cuenta no existe";
+        }
+        if (!cuentaAsociada.getContrasenha().equals(cuentaParaValidar.getContrasenha())) {
+            return "La contraseña de la cuenta " + cuentaAsociada.getNumeroCuenta() + " es incorrecta";
+        }
+        return "La contraseña de la cuenta " + cuentaAsociada.getNumeroCuenta() + " es correcta";
     }
 
     public static Cuenta getCuentaByNumero(String numeroCuenta) {

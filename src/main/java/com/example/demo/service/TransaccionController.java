@@ -11,14 +11,15 @@ import com.example.demo.model.Transaccion;
 @RestController
 public class TransaccionController {
 
-    @RequestMapping(value = "/", method = RequestMethod.POST)
+    @RequestMapping(value = "/transaccion", method = RequestMethod.POST)
     public String realizarTransaccion(@RequestBody Transaccion transaccion) {
 
         Cuenta cuentaOrigen = CuentaController.getCuentaByNumero(transaccion.getCuentaOrigen());
         Cuenta cuentaDestino = CuentaController.getCuentaByNumero(transaccion.getCuentaDestino());
 
-        boolean tienePasswordCorrecta = CuentaController.validarPassword(cuentaOrigen);
-        if (!tienePasswordCorrecta) {
+        String verificacionPassword = CuentaController
+                .validarPassword(new Cuenta(transaccion.getCuentaOrigen(), transaccion.getPassword(), 0));
+        if (!verificacionPassword.contains("es correcta")) {
             return "La contraseña de la cuenta " + cuentaOrigen.getNumeroCuenta() + " es incorrecta";
         }
         var transaccionValida = this.validarSaldo(cuentaOrigen, transaccion.getMonto());
