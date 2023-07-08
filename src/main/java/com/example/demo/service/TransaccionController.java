@@ -1,38 +1,41 @@
 package com.example.demo.service;
 
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.example.demo.model.Cuenta;
+import com.example.demo.dto.Response;
+import com.example.demo.dto.ValidateAccount;
+import com.example.demo.model.Account;
 import com.example.demo.model.Transaccion;
 
 @RestController
 public class TransaccionController {
 
-    @RequestMapping(value = "/transaccion", method = RequestMethod.POST)
-    public String realizarTransaccion(@RequestBody Transaccion transaccion) {
+    @PostMapping(value = "/transaction")
+    public Response<String> realizarTransaccion(@RequestBody Transaccion transaccion) {
+        var response = new Response<String>();
+        Account sourceAccount = AccountController.getAccountByNumber(transaccion.sourceAccount());
+        Account destinationAccount = AccountController.getAccountByNumber(transaccion.destinationAccount());
 
-        Cuenta cuentaOrigen = CuentaController.getCuentaByNumero(transaccion.getCuentaOrigen());
-        Cuenta cuentaDestino = CuentaController.getCuentaByNumero(transaccion.getCuentaDestino());
+        var verificacionPassword = AccountController
+                .validateAccountPassword(new ValidateAccount(transaccion.sourceAccount(), transaccion.password()));
 
-        String verificacionPassword = CuentaController
-                .validarPassword(new Cuenta(transaccion.getCuentaOrigen(), transaccion.getPassword(), 0));
-        if (!verificacionPassword.contains("es correcta")) {
-            return "La contraseña de la cuenta " + cuentaOrigen.getNumeroCuenta() + " es incorrecta";
+        if (verificacionPassword.errorMessage != null) {
+            response.errorMessage = "La cuenta no pudo ser validad correctamente";
         }
-        var transaccionValida = this.validarSaldo(cuentaOrigen, transaccion.getMonto());
+        var transaccionValida = this.validateBalance(sourceAccount, transaccion.amount());
         if (!transaccionValida) {
-            return "La cuenta " + cuentaOrigen.getNumeroCuenta() + " no tiene saldo suficiente";
+            response.errorMessage = "La cuenta " + sourceAccount.getAccountNumber() + " no tiene saldo suficiente";
         }
-        cuentaOrigen.setSaldo(cuentaOrigen.getSaldo() - transaccion.getMonto());
-        cuentaDestino.setSaldo(cuentaDestino.getSaldo() + transaccion.getMonto());
-        return "Transaccion realizada";
+        sourceAccount.setBalance(sourceAccount.getBalance() - transaccion.amount());
+        destinationAccount.setBalance(destinationAccount.getBalance() + transaccion.amount());
+        response.data = "Transaccion realizada";
+        return response;
     }
 
-    private boolean validarSaldo(Cuenta cuenta, int monto) {
-        if (cuenta.getSaldo() < monto) {
+    private boolean validateBalance(Account cuenta, int amount) {
+        if (cuenta.getBalance() < amount) {
             return false;
         }
         return true;
